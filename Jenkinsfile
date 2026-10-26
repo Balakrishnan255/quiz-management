@@ -7,7 +7,6 @@ pipeline {
         DB_PASSWORD = 'QuizPass@2026!'
         DB_NAME     = 'quiz_db'
         JWT_SECRET  = 'mySuperSecretQuizAppKey2026_abc123xyz789randomstuffhere'
-        NODE_ENV    = 'production'
     }
 
     stages {
@@ -32,7 +31,7 @@ pipeline {
         stage('Install & Build Frontend') {
             steps {
                 dir('frontend') {
-                    sh 'npm ci'
+                    sh 'npm ci --include=dev'
                     sh 'npm run build'
                 }
             }
