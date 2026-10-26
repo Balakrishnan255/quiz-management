@@ -1,0 +1,14 @@
+# ansible/group_vars/web.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Default / non-secret variables for the [web] group.
+# Secret values (db_password, jwt_secret, etc.) are passed in via --extra-vars
+# from the Jenkinsfile so they are never stored in source control.
+# ─────────────────────────────────────────────────────────────────────────────
+
+app_dir: /opt/quiz-management
+backend_port: 5000
+frontend_build_dir: "{{ app_dir }}/frontend/dist"
+node_version: "20"
+
+# PM2 process name
+pm2_app_name: quiz-backend

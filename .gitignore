@@ -1,0 +1,44 @@
+# ─── Environment & Secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+# Keep the example file so others know what vars are needed
+!.env.example
+
+# ─── Node / npm ──────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json        # generated – each dev recreates with npm install
+
+# ─── Build / Generated outputs ───────────────────────────────────────────────
+frontend/dist/
+frontend/build/
+backend/dist/
+*.tsbuildinfo
+
+# ─── Vite cache ──────────────────────────────────────────────────────────────
+frontend/.vite/
+.vite/
+
+# ─── OS & Editor junk ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Test coverage ───────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── Ansible sensitive data ──────────────────────────────────────────────────
+ansible/vault_pass.txt
+ansible/*.retry

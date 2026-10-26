@@ -1,0 +1,30 @@
+# ansible/templates/nginx.conf.j2
+# ─────────────────────────────────────────────────────────────────────────────
+# Nginx virtual-host for the Quiz Management System.
+# - Serves the React SPA from the dist/ directory.
+# - Reverse-proxies /api/* to the Node backend running on port 5000.
+# ─────────────────────────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name _;          # replace with your domain e.g. quiz.yourdomain.com
+
+    # ── React SPA ──────────────────────────────────────────────────────────
+    root {{ frontend_build_dir }};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ── Backend API proxy ──────────────────────────────────────────────────
+    location /api/ {
+        proxy_pass         http://127.0.0.1:{{ backend_port }};
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

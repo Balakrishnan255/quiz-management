@@ -1,0 +1,141 @@
+---
+# ansible/deploy.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# Full deployment playbook for the Quiz Management System.
+# Installs system dependencies, copies application files, configures the
+# backend .env, installs Node packages, builds nothing (frontend dist is
+# already compiled by Jenkins), and (re)starts the backend with PM2.
+# A Nginx virtual-host serves the React dist directory.
+# ─────────────────────────────────────────────────────────────────────────────
+- name: Deploy Quiz Management System
+  hosts: web
+  become: true
+
+  vars:
+    # These are supplied by Jenkins via --extra-vars; defaults shown for
+    # local testing only (override them; don't commit real values).
+    db_host: localhost
+    db_port: 3306
+    db_user: quiz_user
+    db_password: CHANGE_ME
+    db_name: quiz_db
+    jwt_secret: CHANGE_ME
+    jwt_expires_in: 7d
+
+  tasks:
+
+    # ── 1. System prerequisites ───────────────────────────────────────────
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install system packages
+      apt:
+        name:
+          - curl
+          - git
+          - nginx
+          - mysql-client
+        state: present
+
+    - name: Install Node.js {{ node_version }} (via NodeSource)
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_{{ node_version }}.x | bash -
+        apt-get install -y nodejs
+      args:
+        creates: /usr/bin/node
+
+    - name: Install PM2 globally
+      npm:
+        name: pm2
+        global: true
+        state: present
+
+    # ── 2. Application directory ──────────────────────────────────────────
+    - name: Ensure app directory exists
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+
+    # ── 3. Copy backend source ────────────────────────────────────────────
+    - name: Sync backend source files
+      synchronize:
+        src: "{{ playbook_dir }}/../backend/"
+        dest: "{{ app_dir }}/backend/"
+        delete: true
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=.env"
+
+    # ── 4. Write backend .env from Ansible vars ───────────────────────────
+    - name: Write backend .env
+      template:
+        src: templates/backend.env.j2
+        dest: "{{ app_dir }}/backend/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0600"
+
+    # ── 5. Install backend Node dependencies ──────────────────────────────
+    - name: Install backend npm dependencies
+      npm:
+        path: "{{ app_dir }}/backend"
+        production: true
+
+    # ── 6. Copy pre-built frontend dist ──────────────────────────────────
+    - name: Sync frontend dist
+      synchronize:
+        src: "{{ playbook_dir }}/../frontend/dist/"
+        dest: "{{ frontend_build_dir }}/"
+        delete: true
+
+    # ── 7. Start / restart backend with PM2 ──────────────────────────────
+    - name: Start or reload PM2 app
+      become_user: "{{ ansible_user }}"
+      shell: |
+        pm2 describe {{ pm2_app_name }} > /dev/null 2>&1 \
+          && pm2 reload {{ pm2_app_name }} \
+          || pm2 start {{ app_dir }}/backend/server.js --name {{ pm2_app_name }}
+        pm2 save
+
+    - name: Ensure PM2 starts on boot
+      shell: pm2 startup systemd -u {{ ansible_user }} --hp /home/{{ ansible_user }}
+      args:
+        creates: /etc/systemd/system/pm2-{{ ansible_user }}.service
+
+    # ── 8. Configure Nginx ────────────────────────────────────────────────
+    - name: Write Nginx virtual-host
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/sites-available/quiz-management
+        mode: "0644"
+      notify: Reload Nginx
+
+    - name: Enable Nginx virtual-host
+      file:
+        src: /etc/nginx/sites-available/quiz-management
+        dest: /etc/nginx/sites-enabled/quiz-management
+        state: link
+      notify: Reload Nginx
+
+    - name: Remove default Nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload Nginx
+
+    - name: Ensure Nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded
