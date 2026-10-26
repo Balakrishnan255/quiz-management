@@ -37,6 +37,7 @@
           - git
           - nginx
           - mysql-client
+          - rsync
         state: present
 
     - name: Install Node.js {{ node_version }} (via NodeSource)
