@@ -54,13 +54,18 @@
         state: present
 
     # ── 2. Application directory ──────────────────────────────────────────
-    - name: Ensure app directory exists
+    - name: Ensure app directories exist
       file:
-        path: "{{ app_dir }}"
+        path: "{{ item }}"
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0755"
+      loop:
+        - "{{ app_dir }}"
+        - "{{ app_dir }}/backend"
+        - "{{ app_dir }}/frontend"
+        - "{{ frontend_build_dir }}"
 
     # ── 3. Copy backend source ────────────────────────────────────────────
     - name: Sync backend source files
