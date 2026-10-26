@@ -1,12 +1,25 @@
 # ansible/templates/nginx.conf.j2
 # ─────────────────────────────────────────────────────────────────────────────
-# Nginx virtual-host for the Quiz Management System.
-# - Serves the React SPA from the dist/ directory.
-# - Reverse-proxies /api/* to the Node backend running on port 5000.
+# Nginx virtual-host with full HTTPS and Let's Encrypt SSL.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ── 1. HTTP to HTTPS Redirect ─────────────────────────────────────────────────
 server {
     listen 80;
-    server_name _;          # replace with your domain e.g. quiz.yourdomain.com
+    server_name quizapp-bala.indiasouthcentral.cloudapp.azure.com _;
+    return 301 https://$host$request_uri;
+}
+
+# ── 2. HTTPS Main Application Server ──────────────────────────────────────────
+server {
+    listen 443 ssl;
+    server_name quizapp-bala.indiasouthcentral.cloudapp.azure.com;
+
+    ssl_certificate /etc/letsencrypt/live/quizapp-bala.indiasouthcentral.cloudapp.azure.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/quizapp-bala.indiasouthcentral.cloudapp.azure.com/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
 
     # ── React SPA ──────────────────────────────────────────────────────────
     root {{ frontend_build_dir }};
