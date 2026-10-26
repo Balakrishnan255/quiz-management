@@ -5,7 +5,7 @@ export default function Home() {
   const { user } = useAuth();
   return (
     <section className="hero">
-    <h1>Test your knowledge with QuizHub(new version) </h1>
+    <h1>Test your knowledge with QuizHub</h1>
       <p>Take timed quizzes, see your score instantly, and track your history.</p>
       {user
         ? <Link className="btn" to={user.role === 'admin' ? '/admin' : '/dashboard'}>Go to Dashboard</Link>
